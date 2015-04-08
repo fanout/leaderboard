@@ -110,3 +110,6 @@ from gripcontrol import parse_grip_uri
 
 GRIP_PREFIX = 'leaderboard-'
 GRIP_PROXIES = [parse_grip_uri(os.environ['GRIP_URL'])]
+
+if 'API_HOST' in os.environ:
+	LEADERBOARD_API_HOST = os.environ['API_HOST']
