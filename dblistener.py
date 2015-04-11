@@ -22,5 +22,6 @@ while True:
 				publish_board(board)
 			except Exception as e:
 				logger.debug('failed to handle', e)
-	except RqlDriverError:
+	except RqlDriverError as e:
+		logger.debug('failed to connect', e)
 		time.sleep(1)
