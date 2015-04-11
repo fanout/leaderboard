@@ -1,6 +1,5 @@
 import os
 import time
-import traceback
 import logging
 import django
 from rethinkdb.errors import RqlDriverError
