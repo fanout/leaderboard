@@ -1,8 +1,26 @@
 import os
 import sys
+from tempfile import NamedTemporaryFile
 import subprocess
 
-key_file = 'tunnel.pem'
+def check_already_running(forwards):
+	try:
+		lines = subprocess.check_output(['pgrep', '-x', '-a', 'ssh']).split('\n')
+	except subprocess.CalledProcessError:
+		lines = list()
+
+	for line in lines:
+		pid, cmd = line.split(' ', 1)
+		pid = int(pid)
+		found = False
+		for f in forwards:
+			if f in cmd:
+				found = True
+				break
+		if found:
+			print 'SSH tunnel already running. PID=%d' % pid
+			return True
+	return False
 
 target = os.environ['SSH_TUNNEL_TARGET']
 at = target.find(':')
@@ -23,42 +41,41 @@ for n in range(0, ((len(blob) - 1) / 64) + 1):
 	out += blob[n*64:(n*64)+64] + '\n'
 out += '-----END %s PRIVATE KEY-----\n' % type
 
-args = [
-	'ssh',
-	'-f',
-	'-N',
-	'-i', key_file,
-	'-o', 'StrictHostKeyChecking=no',
-	'-o', 'ExitOnForwardFailure=yes'
-]
-
-for f in forwards:
-	args.extend(['-L', f])
-
-if port is not None:
-	args.extend(['-p', str(port)])
-
-args.append(target)
-
-cmd = ' '.join(args)
+f = NamedTemporaryFile(delete=False)
+key_file = f.name
 
 try:
-	pid = int(subprocess.check_output(['pgrep', '-f', cmd]))
-	print 'SSH tunnel already running. PID=%d' % pid
-	sys.exit(0)
-except subprocess.CalledProcessError:
-	# not running
-	pass
+	f.write(out)
+	f.close()
 
-f = open(key_file, 'w')
-f.write(out)
-f.close()
+	args = [
+		'ssh',
+		'-f',
+		'-N',
+		'-i', key_file,
+		'-o', 'StrictHostKeyChecking=no',
+		'-o', 'ExitOnForwardFailure=yes'
+	]
 
-os.chmod(key_file, 0600)
+	for f in forwards:
+		args.extend(['-L', f])
 
-print 'Starting SSH tunnel: %s' % cmd
+	if port is not None:
+		args.extend(['-p', str(port)])
 
-try:
-	subprocess.check_call(args)
+	args.append(target)
+
+	cmd = ' '.join(args)
+
+	if check_already_running(forwards):
+		sys.exit(0)
+
+	print 'Starting SSH tunnel: %s' % cmd
+
+	try:
+		subprocess.check_call(args)
+	except subprocess.CalledProcessError:
+		if not check_already_running(forwards):
+			raise
 finally:
 	os.remove(key_file)
