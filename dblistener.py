@@ -1,13 +1,12 @@
-import os
+import os, django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'leaderboard.settings')
+django.setup()
+
 import time
 import logging
-import django
 from rethinkdb.errors import RqlDriverError
 from leaderboardapp.models import Board, Player
 from leaderboardapp.views import publish_board
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'leaderboard.settings')
-django.setup()
 
 logger = logging.getLogger('dblistener')
 
