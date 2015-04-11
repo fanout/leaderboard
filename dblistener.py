@@ -3,7 +3,7 @@ import time
 import traceback
 import logging
 import django
-import rethinkdb
+from rethinkdb.errors import RqlDriverError
 from leaderboardapp.models import Board, Player
 from leaderboardapp.views import publish_board
 
@@ -22,5 +22,5 @@ while True:
 				publish_board(board)
 			except Exception as e:
 				logger.debug('failed to handle', e)
-	except rethinkdb.errors.RqlDriverError:
+	except RqlDriverError:
 		time.sleep(1)

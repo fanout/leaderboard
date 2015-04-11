@@ -12,9 +12,27 @@ port = _url_parsed.port
 dbname = _url_parsed.path[1:]
 del _url_parsed
 
+def _ensure_db(conn):
+	# create database
+	try:
+		r.db_create(dbname).run(conn)
+
+		# some defaults
+		board = Board()
+		board.save()
+		Player(board=board, name='TS').save()
+		Player(board=board, name='Brodie').save()
+		Player(board=board, name='Brandi').save()
+		Player(board=board, name='Rene').save()
+		Player(board=board, name='Stan').save()
+	except r.RqlRuntimeError:
+		# already created
+		pass
+
 def _get_conn():
 	if not hasattr(_threadlocal, 'conn'):
 		_threadlocal.conn = r.connect(hostname, port)
+		_ensure_db(_threadlocal.conn)
 	return _threadlocal.conn
 
 class ObjectDoesNotExist(object):
@@ -197,20 +215,3 @@ class Player(object):
 		# use dedicated connection
 		changes_conn = r.connect(hostname, port)
 		return Player.get_table().changes().run(changes_conn)
-
-# create database
-try:
-	r.db_create(dbname).run(_get_conn())
-
-	# some defaults
-	board = Board()
-	board.save()
-	Player(board=board, name='TS').save()
-	Player(board=board, name='Brodie').save()
-	Player(board=board, name='Brandi').save()
-	Player(board=board, name='Rene').save()
-	Player(board=board, name='Stan').save()
-except r.RqlRuntimeError:
-	# already created
-	pass
-
