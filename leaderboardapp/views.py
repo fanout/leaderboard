@@ -1,7 +1,7 @@
 import json
-import traceback
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotFound, HttpResponseNotAllowed
-from django_grip import set_hold_stream
+from django.http import HttpResponse, HttpResponseNotFound, HttpResponseNotAllowed
+from gripcontrol import HttpStreamFormat
+from django_grip import set_hold_stream, publish
 from .models import ObjectDoesNotExist, Board, Player
 
 def _board_data(board, players):
