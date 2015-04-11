@@ -20,8 +20,8 @@ while True:
 				row = change['new_val']
 				board = Board.get(row['board'])
 				publish_board(board)
-			except Exception as e:
-				logger.debug('failed to handle', e)
-	except RqlDriverError as e:
-		logger.debug('failed to connect', e)
+			except Exception:
+				logger.exception('failed to handle')
+	except RqlDriverError:
+		logger.exception('failed to connect')
 		time.sleep(1)
