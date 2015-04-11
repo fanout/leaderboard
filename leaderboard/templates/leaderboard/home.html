@@ -137,7 +137,7 @@
                   var incButton = $('#button-inc-' + player.id);
                   incButton.click(function () {
                       incButton.attr('disabled', 'true');
-                      $.post('{{ api_base_uri }}/players/' + player.id + '/score-add/', function (data) {
+                      $.post('{{ board_uri }}/players/' + player.id + '/score-add/', function (data) {
                           incButton.removeAttr('disabled');
                           applyPlayerData([data], false);
                       }, 'json');
@@ -145,7 +145,7 @@
               }; f();
           }
 
-          var es = new EventSource('{{ api_base_uri }}/');
+          var es = new EventSource('{{ board_uri }}/');
           es.addEventListener('update', function (e) {
               var data = JSON.parse(e.data);
               console.log('update: ' + JSON.stringify(data));
