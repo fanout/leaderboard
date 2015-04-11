@@ -1,9 +1,7 @@
-import threading
 import json
 import traceback
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotFound, HttpResponseNotAllowed
-from gripcontrol import HttpStreamFormat
-from django_grip import set_hold_stream, publish
+from django_grip import set_hold_stream
 from .models import ObjectDoesNotExist, Board, Player
 
 def _board_data(board, players):
@@ -28,20 +26,7 @@ def _player_json(player):
 def _player_response(player):
 	return HttpResponse(_player_json(player) + '\n', content_type='application/json')
 
-def _changes_worker():
-	for change in Player.get_all_changes():
-		try:
-			row = change['new_val']
-			board = Board.get(row['board'])
-			_publish_board(board)
-		except:
-			traceback.print_exc()
-
-changes_thread = threading.Thread(target=_changes_worker)
-changes_thread.daemon = True
-changes_thread.start()
-
-def _publish_board(board):
+def publish_board(board):
 	players = Player.get_top_for_board(board)
 	publish(str(board.id), HttpStreamFormat('event: update\ndata: %s\n\n' % _board_json(board, players, pretty=False)))
 

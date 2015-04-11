@@ -106,6 +106,41 @@ STATICFILES_DIRS = (
     os.path.join(BASE_DIR, os.path.join('leaderboard', 'static')),
 )
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        }
+    },
+    'handlers': {
+        'null': {
+            'level': 'DEBUG',
+            'class': 'logging.NullHandler',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        }
+    },
+    'loggers': {
+        'leaderboardapp': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'dblistener': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        }
+    }
+}
+
 from gripcontrol import parse_grip_uri
 
 GRIP_PREFIX = 'leaderboard-'
