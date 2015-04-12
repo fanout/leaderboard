@@ -4,6 +4,7 @@
     <title>Leaderboard</title>
 
     <script src="{% static 'jquery-1.11.2.min.js' %}"></script>
+    <script src="{% static 'eventsource.min.js' %}"></script>
     <script>
       var players = [{% for player in players %}
           { id: "{{ player.id }}", name: "{{ player.name }}", score: {{ player.score }} }{% if not forloop.last %},{% endif %}{% endfor %}
