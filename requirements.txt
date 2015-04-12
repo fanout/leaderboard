@@ -9,7 +9,8 @@ gripcontrol==2.3.2
 gunicorn==19.3.0
 ipython==3.1.0
 psycopg2==2.6
-pubcontrol==2.0.5
+pubcontrol==2.1.0
+requests==2.6.0
 rethinkdb==1.16.0-4
 static3==0.5.1
 wsgiref==0.1.2
