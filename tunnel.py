@@ -10,6 +10,8 @@ def check_already_running(forwards):
 		lines = list()
 
 	for line in lines:
+		if not line:
+			continue
 		pid, cmd = line.split(' ', 1)
 		pid = int(pid)
 		found = False
