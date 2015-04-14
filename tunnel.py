@@ -1,3 +1,28 @@
+# SSH tunnel script
+#
+# Set the following environment variables:
+#   SSH_TUNNEL_TARGET=user@hostname:port
+#   SSH_TUNNEL_KEY=RSA:{base64 private key}
+#   SSH_TUNNEL_FORWARDS=localaddr:localport:remoteaddr:remoteport,[...]
+#
+# Notes:
+#
+#   SSH_TUNNEL_KEY's value is the key type (e.g. "RSA"), a colon character,
+#   and then the ssh private key in base64 without the headers/footers or
+#   newlines. Yes you're setting an entire giant ssh key as an environment
+#   variable, but it works.
+#
+#   SSH_TUNNEL_FORWARDS is a comma-separated list of args that would normally
+#   each be preceded by -L in an ssh command.
+#
+# In your Procfile, simply run the tunnel before any workers that need it.
+#
+#   web: python tunnel.py && ....
+#
+# It's safe to run the script multiple times concurrently. Only one tunnel will
+# be made and the other invocations will fail successfully. This way multiple
+# workers can depend on the tunnel, and you can still use foreman locally.
+#
 import os
 import sys
 from tempfile import NamedTemporaryFile
