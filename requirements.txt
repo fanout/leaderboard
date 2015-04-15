@@ -5,7 +5,7 @@ cffi==0.9.2
 cryptography==0.8.2
 dj-database-url==0.3.0
 dj-static==0.0.6
-django-grip==1.6.0
+django-grip==1.6.1
 django-toolbelt==0.0.1
 enum34==1.0.4
 gripcontrol==2.3.2
