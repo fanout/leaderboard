@@ -5,7 +5,7 @@ cffi==0.9.2
 cryptography==0.8.2
 dj-database-url==0.3.0
 dj-static==0.0.6
-django-grip==1.5.0
+django-grip==1.6.0
 django-toolbelt==0.0.1
 enum34==1.0.4
 gripcontrol==2.3.2
@@ -13,7 +13,7 @@ gunicorn==19.3.0
 ipython==3.1.0
 ndg-httpsclient==0.3.3
 psycopg2==2.6
-pubcontrol==2.1.0
+pubcontrol==2.1.1
 pyOpenSSL==0.14
 pyasn1==0.1.7
 pycparser==2.10
