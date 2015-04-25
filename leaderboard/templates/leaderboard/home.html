@@ -1,33 +1,124 @@
 {% load staticfiles %}<!DOCTYPE html>
 <html>
 <head>
-    <title>Leaderboard</title>
-    <style>
+<title>Leaderboard</title>
+<style>
+    /*Reset*/
+    a,abbr,acronym,address,applet,big,blockquote,body,caption,cite,code,dd,del,dfn,div,dl,dt,em,fieldset,font,form,h1,h2,h3,h4,h5,h6,html,iframe,img,ins,kbd,label,legend,li,object,ol,p,pre,q,s,samp,small,span,strike,strong,sub,sup,table,tbody,td,tfoot,th,thead,tr,tt,ul,var{margin:0;padding:0;border:0;outline:0;font-weight:inherit;font-style:inherit;font-size:100%;font-family:inherit;vertical-align:baseline}:focus{outline:0}body{line-height:1;color:#000;background:#fff}ol,ul{list-style:none}table{border-collapse:separate;border-spacing:0}caption,td,th{text-align:left;font-weight:400}blockquote:after,blockquote:before,q:after,q:before{content:""}blockquote,q{quotes:"" ""}
+    html,body {
+        height: 100%;
+        box-sizing: border-box;
+    }
+    *, *:before, *:after {
+      box-sizing: inherit;
+    }
+    body {
+        display: -webkit-flex;
+        display: flex;
 
-    </style>
+        -webkit-align-items: center;
+        align-items: center;
+        -webkit-justify-content: center;
+        justify-content: center;
+
+        background: #7abcff; /* Old browsers */
+        background: -moz-linear-gradient(top,  #7abcff 0%, #60abf8 44%, #4096ee 100%); /* FF3.6+ */
+        background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#7abcff), color-stop(44%,#60abf8), color-stop(100%,#4096ee)); /* Chrome,Safari4+ */
+        background: -webkit-linear-gradient(top,  #7abcff 0%,#60abf8 44%,#4096ee 100%); /* Chrome10+,Safari5.1+ */
+        background: -o-linear-gradient(top,  #7abcff 0%,#60abf8 44%,#4096ee 100%); /* Opera 11.10+ */
+        background: -ms-linear-gradient(top,  #7abcff 0%,#60abf8 44%,#4096ee 100%); /* IE10+ */
+        background: linear-gradient(to bottom,  #7abcff 0%,#60abf8 44%,#4096ee 100%); /* W3C */
+        filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#7abcff', endColorstr='#4096ee',GradientType=0 ); /* IE6-9 */
+    }
+
+    #main {
+        -webkit-flex: 1;
+        flex: 1;
+
+        max-width: 90%;
+        height: 90%;
+
+        padding: 5vh 10vw;
+
+        background: rgb(53,106,160); /* Old browsers */
+        background: -moz-linear-gradient(top,  rgba(53,106,160,1) 0%, rgba(53,106,160,1) 100%); /* FF3.6+ */
+        background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(53,106,160,1)), color-stop(100%,rgba(53,106,160,1))); /* Chrome,Safari4+ */
+        background: -webkit-linear-gradient(top,  rgba(53,106,160,1) 0%,rgba(53,106,160,1) 100%); /* Chrome10+,Safari5.1+ */
+        background: -o-linear-gradient(top,  rgba(53,106,160,1) 0%,rgba(53,106,160,1) 100%); /* Opera 11.10+ */
+        background: -ms-linear-gradient(top,  rgba(53,106,160,1) 0%,rgba(53,106,160,1) 100%); /* IE10+ */
+        background: linear-gradient(to bottom,  rgba(53,106,160,1) 0%,rgba(53,106,160,1) 100%); /* W3C */
+        filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#356aa0', endColorstr='#356aa0',GradientType=0 ); /* IE6-9 */
+
+        border: 3px solid white;
+        -webkit-border-radius: 5%;
+        -moz-border-radius: 5%;
+        border-radius: 5%;
+
+        -webkit-box-shadow: inset 5px 5px 5px 0px rgba(0,0,0,0.75);
+        -moz-box-shadow: inset 5px 5px 5px 0px rgba(0,0,0,0.75);
+        box-shadow: inset 5px 5px 5px 0px rgba(0,0,0,0.75);
+
+        font-size: 6vh;
+    }
+
+    #main > header {
+        font-family: "Arial Black", Gadget, sans-serif;
+        color: #DAA520;
+        text-shadow: 2px 2px 2px rgba(0, 0, 0, 1);
+        font-size: 10vh;
+
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    #board {
+        font-family: Arial, Helvetica, sans-serif;
+
+        margin: 0.5em auto;
+        width: 90%;
+
+        color: white;
+        text-shadow: 0px 0px 4px rgba(255, 255, 81, 1);
+    }
+
+    #board th {
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    #board th,
+    #board td {
+        line-height: 1.8;
+    }
+</style>
+
 </head>
 <body>
 
-<h1>Leaderboard</h1>
+<section id="main">
+    <header>Leaderboard</header>
 
-<table id="board">
-    <thead>
-    <tr>
-        <th>Player</th>
-        <th>Score</th>
-    </tr>
-    </thead>
-    <tbody>{% for player in players %}
-    <tr id="tr-{{ player.id }}">
-        <td>{{ player.name }}</td>
-        <td>{{ player.score }}</td>
-        <td>
-            <button id="button-inc-{{ player.id }}" type="button">+1</button>
-        </td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
+    <table id="board">
+        <thead>
+        <tr>
+            <th>Player</th>
+            <th>Score</th>
+        </tr>
+        </thead>
+        <tbody>{% for player in players %}
+        <tr id="tr-{{ player.id }}">
+            <td>{{ player.name }}</td>
+            <td>{{ player.score }}</td>
+            <td>
+                <button id="button-inc-{{ player.id }}" type="button">+1</button>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+</section>
+
 
 <script src="{% static 'jquery-1.11.2.min.js' %}"></script>
 <script src="{% static 'eventsource.min.js' %}"></script>
