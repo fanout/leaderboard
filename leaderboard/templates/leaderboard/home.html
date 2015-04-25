@@ -1,176 +1,189 @@
 {% load staticfiles %}<!DOCTYPE html>
 <html>
-  <head>
+<head>
     <title>Leaderboard</title>
+    <style>
 
-    <script src="{% static 'jquery-1.11.2.min.js' %}"></script>
-    <script src="{% static 'eventsource.min.js' %}"></script>
-    <script>
-      var players = [{% for player in players %}
-          { id: "{{ player.id }}", name: "{{ player.name }}", score: {{ player.score }} }{% if not forloop.last %},{% endif %}{% endfor %}
-      ];
+    </style>
+</head>
+<body>
 
-      // returns index or -1
-      var findIndex = function (id) {
-          for (var n = 0; n < players.length; ++n) {
-              if (players[n].id == id) {
-                  return n;
-              }
-          }
+<h1>Leaderboard</h1>
 
-          return -1;
-      };
+<table id="board">
+    <thead>
+    <tr>
+        <th>Player</th>
+        <th>Score</th>
+    </tr>
+    </thead>
+    <tbody>{% for player in players %}
+    <tr id="tr-{{ player.id }}">
+        <td>{{ player.name }}</td>
+        <td>{{ player.score }}</td>
+        <td>
+            <button id="button-inc-{{ player.id }}" type="button">+1</button>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
 
-      // returns index or -1. assumes sorted
-      var findIndexForData = function (name, score) {
-          var highest = -1;
-          for (var n = players.length - 1; n >= 0; --n) {
-              if (score < players[n].score || (score == players[n].score && name < players[n].name)) {
-                  break;
-              }
+<script src="{% static 'jquery-1.11.2.min.js' %}"></script>
+<script src="{% static 'eventsource.min.js' %}"></script>
+<script>
+    var players = [
+        {% for player in players %}
+            { "id": "{{ player.id }}", "name": "{{ player.name }}", "score": {{ player.score }} }
+            {% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
 
-              highest = n;
-          }
+    // returns index or -1
+    var findIndex = function (id) {
+        for (var n = 0; n < players.length; ++n) {
+            if (players[n].id == id) {
+                return n;
+            }
+        }
 
-          return highest;
-      };
+        return -1;
+    };
 
-      // return tr selector or null. assumes sorted
-      var findRowForData = function (name, score) {
-          var highest = null;
-          $($('#board').find('tbody').find('tr').get().reverse()).each(function () {
-              var tr = $(this);
-              var rowName = parseInt($(tr.find('td')[0]).text());
-              var rowScore = parseInt($(tr.find('td')[1]).text());
-              if (score < rowScore || (score == rowScore && name < rowName)) {
-                  return false;
-              }
+    // returns index or -1. assumes sorted
+    var findIndexForData = function (name, score) {
+        var highest = -1;
+        for (var n = players.length - 1; n >= 0; --n) {
+            if (score < players[n].score || (score == players[n].score && name < players[n].name)) {
+                break;
+            }
 
-              highest = tr;
-          });
+            highest = n;
+        }
 
-          return highest;
-      };
+        return highest;
+    };
 
-      var createRow = function (id, name, score) {
-          return $('<tr id="tr-' + id + '"><td>' + name + '</td><td>' + score + '</td><td><button id="button-inc-' + id + '" type="button">+1</button></td></tr>');
-      }
+    // return tr selector or null. assumes sorted
+    var findRowForData = function (name, score) {
+        var highest = null;
+        $($('#board').find('tbody').find('tr').get().reverse()).each(function () {
+            var tr = $(this);
+            var rowName = parseInt($(tr.find('td')[0]).text());
+            var rowScore = parseInt($(tr.find('td')[1]).text());
+            if (score < rowScore || (score == rowScore && name < rowName)) {
+                return false;
+            }
 
-      var applyPlayerData = function (pdList, resize) {
-          if (resize) {
-              for (var n = 0; n < players.length; ++n) {
-                  var found = false;
-                  for (var k = 0; k < pdList.length; ++k) {
-                      if (pdList[k].id == players[n].id) {
-                          found = true;
-                          break;
-                      }
-                  }
+            highest = tr;
+        });
 
-                  if(!found) {
-                      players.splice(n, 1);
-                      --n; // adjust position
-                  }
-              }
+        return highest;
+    };
 
-              $('#board').find('tbody').find('tr').each(function () {
-                  var tr = $(this);
-                  var trId = tr.attr('id');
-                  var id = trId.substring(trId.indexOf('-') + 1);
-                  var found = false;
-                  for (var n = 0; n < pdList.length; ++n) {
-                      if (pdList[n].id == id) {
-                          found = true;
-                          break;
-                      }
-                  }
-                  if (!found) {
-                      tr.remove();
-                  }
-              });
-          }
+    var createRow = function (id, name, score) {
+        return $('<tr id="tr-' + id + '"><td>' + name + '</td><td>' + score + '</td><td><button id="button-inc-' + id + '" type="button">+1</button></td></tr>');
+    }
 
-          for (var n = 0; n < pdList.length; ++n) {
-              var pdata = pdList[n];
-              var pi = findIndex(pdata.id);
-              var tr = $('#tr-' + pdata.id);
-              if (pi != -1 && tr) {
-                  if (players[pi].score != pdata.score) {
-                      players[pi].score = pdata.score;
-                      var di = findIndexForData(pdata.name, pdata.score);
-                      console.log(pdata.name + ' was at ' + pi + ' but should move to ' + di);
-                      if (di != -1 && di != pi) {
-                          players.splice(di, 0, players.splice(pi, 1)[0]);
-                      }
+    var applyPlayerData = function (pdList, resize) {
+        if (resize) {
+            for (var n = 0; n < players.length; ++n) {
+                var found = false;
+                for (var k = 0; k < pdList.length; ++k) {
+                    if (pdList[k].id == players[n].id) {
+                        found = true;
+                        break;
+                    }
+                }
 
-                      $(tr.find('td')[1]).text('' + pdata.score);
-                      var afterTr = findRowForData(pdata.name, pdata.score);
-                      if (afterTr) {
-                          tr.insertBefore(afterTr);
-                      }
-                  }
-              } else if (resize) {
-                  if (pi == -1) {
-                      var di = findIndexForData(pdata.name, pdata.score);
-                      if (di != -1) {
-                          players.splice(di, 0, {
-                              id: pdata.id,
-                              name: pdata.name,
-                              score: pdata.score
-                          });
-                      }
-                  }
+                if (!found) {
+                    players.splice(n, 1);
+                    --n; // adjust position
+                }
+            }
 
-                  if (!tr) {
-                      var afterTr = findRowForData(pdata.name, pdata.score);
-                      if (afterTr) {
-                          createRow(pdata.id, pdata.name, pdata.score).insertBefore(afterTr);
-                      }
-                  }
-              }
-          }
-      };
+            $('#board').find('tbody').find('tr').each(function () {
+                var tr = $(this);
+                var trId = tr.attr('id');
+                var id = trId.substring(trId.indexOf('-') + 1);
+                var found = false;
+                for (var n = 0; n < pdList.length; ++n) {
+                    if (pdList[n].id == id) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    tr.remove();
+                }
+            });
+        }
 
-      $(function () {
-          for (var n = 0; n < players.length; ++n) {
-              var f = function () {
-                  var player = players[n];
-                  var incButton = $('#button-inc-' + player.id);
-                  incButton.click(function () {
-                      incButton.attr('disabled', 'true');
-                      $.post('{{ board_uri }}/players/' + player.id + '/score-add/', function (data) {
-                          incButton.removeAttr('disabled');
-                          applyPlayerData([data], false);
-                      }, 'json');
-                  });
-              }; f();
-          }
+        for (var n = 0; n < pdList.length; ++n) {
+            var pdata = pdList[n];
+            var pi = findIndex(pdata.id);
+            var tr = $('#tr-' + pdata.id);
+            if (pi != -1 && tr) {
+                if (players[pi].score != pdata.score) {
+                    players[pi].score = pdata.score;
+                    var di = findIndexForData(pdata.name, pdata.score);
+                    console.log(pdata.name + ' was at ' + pi + ' but should move to ' + di);
+                    if (di != -1 && di != pi) {
+                        players.splice(di, 0, players.splice(pi, 1)[0]);
+                    }
 
-          var es = new EventSource('{{ board_uri }}/');
-          es.addEventListener('update', function (e) {
-              var data = JSON.parse(e.data);
-              console.log('update: ' + JSON.stringify(data));
-              applyPlayerData(data.players, true);
-          }, false);
-      });
-    </script>
-  </head>
-  <body>
-    <h1>Leaderboard</h1>
-    <table id="board">
-      <thead>
-        <tr>
-          <th>Player</th>
-          <th>Score</th>
-        </tr>
-      </thead>
-      <tbody>{% for player in players %}
-        <tr id="tr-{{ player.id }}">
-          <td>{{ player.name }}</td>
-          <td>{{ player.score }}</td>
-          <td><button id="button-inc-{{ player.id }}" type="button">+1</button></td>
-        </tr>{% endfor %}
-      </tbody>
-    </table>
-  </body>
+                    $(tr.find('td')[1]).text('' + pdata.score);
+                    var afterTr = findRowForData(pdata.name, pdata.score);
+                    if (afterTr) {
+                        tr.insertBefore(afterTr);
+                    }
+                }
+            } else if (resize) {
+                if (pi == -1) {
+                    var di = findIndexForData(pdata.name, pdata.score);
+                    if (di != -1) {
+                        players.splice(di, 0, {
+                            id: pdata.id,
+                            name: pdata.name,
+                            score: pdata.score
+                        });
+                    }
+                }
+
+                if (!tr) {
+                    var afterTr = findRowForData(pdata.name, pdata.score);
+                    if (afterTr) {
+                        createRow(pdata.id, pdata.name, pdata.score).insertBefore(afterTr);
+                    }
+                }
+            }
+        }
+    };
+
+    $(function () {
+        for (var n = 0; n < players.length; ++n) {
+            var f = function () {
+                var player = players[n];
+                var incButton = $('#button-inc-' + player.id);
+                incButton.click(function () {
+                    incButton.attr('disabled', 'true');
+                    $.post('{{ board_uri }}/players/' + player.id + '/score-add/', function (data) {
+                        incButton.removeAttr('disabled');
+                        applyPlayerData([data], false);
+                    }, 'json');
+                });
+            };
+            f();
+        }
+
+        var es = new EventSource('{{ board_uri }}/');
+        es.addEventListener('update', function (e) {
+            var data = JSON.parse(e.data);
+            console.log('update: ' + JSON.stringify(data));
+            applyPlayerData(data.players, true);
+        }, false);
+    });
+</script>
+
+</body>
 </html>
