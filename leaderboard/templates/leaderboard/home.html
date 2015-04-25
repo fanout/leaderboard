@@ -226,7 +226,7 @@
             var pi = findIndex(pdata.id);
             var tr = $('#tr-' + pdata.id);
             if (pi != -1 && tr) {
-                if (players[pi].score != pdata.score) {
+                if (players[pi].score > pdata.score) {
                     players[pi].score = pdata.score;
                     var di = findIndexForData(pdata.name, pdata.score);
                     console.log(pdata.name + ' was at ' + pi + ' but should move to ' + di);
