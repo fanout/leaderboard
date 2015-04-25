@@ -90,8 +90,13 @@
     #board td {
         line-height: 1.8;
     }
-</style>
 
+    #board button.inc {
+        font-size: 5vh;
+    }
+
+</style>
+<link rel="stylesheet" href="{% static 'odometer-theme-default.css' %}" />
 </head>
 <body>
 
@@ -105,14 +110,17 @@
             <th>Score</th>
         </tr>
         </thead>
-        <tbody>{% for player in players %}
-        <tr id="tr-{{ player.id }}">
-            <td>{{ player.name }}</td>
-            <td>{{ player.score }}</td>
-            <td>
-                <button id="button-inc-{{ player.id }}" type="button">+1</button>
-            </td>
-        </tr>
+        <tbody>
+        {% for player in players %}
+            {% if forloop.counter0 < 5 %}
+            <tr id="tr-{{ player.id }}">
+                <td class="playername">{{ player.name }}</td>
+                <td class="score odometer">{{ player.score }}</td>
+                <td>
+                    <button class="inc" id="button-inc-{{ player.id }}" type="button">+1</button>
+                </td>
+            </tr>
+            {% endif %}
         {% endfor %}
         </tbody>
     </table>
@@ -122,6 +130,7 @@
 
 <script src="{% static 'jquery-1.11.2.min.js' %}"></script>
 <script src="{% static 'eventsource.min.js' %}"></script>
+<script src="{% static 'odometer.min.js' %}"></script>
 <script>
     var players = [
         {% for player in players %}
@@ -160,8 +169,8 @@
         var highest = null;
         $($('#board').find('tbody').find('tr').get().reverse()).each(function () {
             var tr = $(this);
-            var rowName = parseInt($(tr.find('td')[0]).text());
-            var rowScore = parseInt($(tr.find('td')[1]).text());
+            var rowName = tr.find('.playername').text();
+            var rowScore = tr.data('score');
             if (score < rowScore || (score == rowScore && name < rowName)) {
                 return false;
             }
@@ -173,7 +182,9 @@
     };
 
     var createRow = function (id, name, score) {
-        return $('<tr id="tr-' + id + '"><td>' + name + '</td><td>' + score + '</td><td><button id="button-inc-' + id + '" type="button">+1</button></td></tr>');
+        var row = $('<tr id="tr-' + id + '"><td>' + name + '</td><td class="odometer">' + score + '</td><td><button id="button-inc-' + id + '" type="button">+1</button></td></tr>');
+        row.data('score', score);
+        return row;
     }
 
     var applyPlayerData = function (pdList, resize) {
@@ -223,7 +234,8 @@
                         players.splice(di, 0, players.splice(pi, 1)[0]);
                     }
 
-                    $(tr.find('td')[1]).text('' + pdata.score);
+                    tr.find('.score').html(pdata.score);
+                    tr.data('score', pdata.score);
                     var afterTr = findRowForData(pdata.name, pdata.score);
                     if (afterTr) {
                         tr.insertBefore(afterTr);
@@ -271,7 +283,7 @@
         es.addEventListener('update', function (e) {
             var data = JSON.parse(e.data);
             console.log('update: ' + JSON.stringify(data));
-            applyPlayerData(data.players, true);
+            applyPlayerData(data.players.slice(0,5), true);
         }, false);
     });
 </script>
