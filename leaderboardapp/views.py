@@ -40,7 +40,7 @@ def board(request, board_id):
 			set_hold_stream(request, str(board_id))
 			return HttpResponse(content_type='text/event-stream')
 		else:
-			players = Player.get_top_for_board(board)
+			players = Player.get_top_for_board(board, limit=5)
 			return _board_response(board, players)
 	else:
 		return HttpResponseNotAllowed(['GET'])
@@ -69,5 +69,5 @@ def board_player_score_add(request, board_id, player_id):
 		return HttpResponseNotAllowed(['POST'])
 
 def publish_board(board):
-	players = Player.get_top_for_board(board)
+	players = Player.get_top_for_board(board, limit=5)
 	publish(str(board.id), HttpStreamFormat('event: update\ndata: %s\n\n' % _board_json(board, players, pretty=False)))
