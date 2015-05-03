@@ -89,12 +89,19 @@
     #board th,
     #board td {
         line-height: 1.8;
+        text-align: center;
+    }
+
+    #board .playername {
+        text-align: left;
+    }
+    #board .score {
+        text-align: right;
     }
 
     #board button.inc {
         font-size: 5vh;
     }
-
 </style>
 <link rel="stylesheet" href="{% static 'odometer-theme-default.css' %}" />
 </head>
@@ -108,184 +115,153 @@
         <tr>
             <th>Player</th>
             <th>Score</th>
+            <th></th>
         </tr>
         </thead>
         <tbody>
-        {% for player in players %}
-            {% if forloop.counter0 < 5 %}
-            <tr id="tr-{{ player.id }}">
-                <td class="playername">{{ player.name }}</td>
-                <td class="score odometer">{{ player.score }}</td>
+        <!-- ko foreach: players -->
+            <tr class="knockout">
+                <td class="playername" data-bind="text: playerName"></td>
+                <td class="score"><span data-bind="odometer: score"></span></td>
                 <td>
-                    <button class="inc" id="button-inc-{{ player.id }}" type="button">+1</button>
+                    <button class="inc" type="button" data-bind="click: $parent.incrementScore, disable: incrementing">+1</button>
                 </td>
             </tr>
-            {% endif %}
-        {% endfor %}
+        <!-- /ko -->
         </tbody>
     </table>
 
 </section>
 
-
 <script src="{% static 'jquery-1.11.2.min.js' %}"></script>
+<script src="{% static 'knockoutjs-3.3.0.js' %}"></script>
 <script src="{% static 'eventsource.min.js' %}"></script>
 <script src="{% static 'odometer.min.js' %}"></script>
 <script>
-    var players = [
-        {% for player in players %}
-            { "id": "{{ player.id }}", "name": "{{ player.name }}", "score": {{ player.score }} }
-            {% if not forloop.last %},{% endif %}
-        {% endfor %}
-    ];
 
-    // returns index or -1
-    var findIndex = function (id) {
-        for (var n = 0; n < players.length; ++n) {
-            if (players[n].id == id) {
-                return n;
-            }
-        }
+    (function() {
 
-        return -1;
-    };
+        var playerData = [
+            {% for player in players %}
+                { "id": "{{ player.id }}", "playerName": "{{ player.name }}", "score": {{ player.score }} }
+                {% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
 
-    // returns index or -1. assumes sorted
-    var findIndexForData = function (name, score) {
-        var highest = -1;
-        for (var n = players.length - 1; n >= 0; --n) {
-            if (score < players[n].score || (score == players[n].score && name < players[n].name)) {
-                break;
-            }
+        // Only going to use first five
+        playerData = playerData.slice(0, 5);
 
-            highest = n;
-        }
+        var PlayerViewModel = function(id, playerName, score) {
+            this.id = id;
+            this.playerName = playerName;
+            this.score = ko.observable(score);
+            this.incrementing = ko.observable(false);
+        };
 
-        return highest;
-    };
+        var ViewModel = function(data) {
+            var viewModel = this;
+            var playerViewModels = $.map(data, function(e) { return new PlayerViewModel(e.id, e.playerName, e.score); });
+            viewModel.players = ko.observableArray(playerViewModels);
 
-    // return tr selector or null. assumes sorted
-    var findRowForData = function (name, score) {
-        var highest = null;
-        $($('#board').find('tbody').find('tr').get().reverse()).each(function () {
-            var tr = $(this);
-            var rowName = tr.find('.playername').text();
-            var rowScore = tr.data('score');
-            if (score < rowScore || (score == rowScore && name < rowName)) {
-                return false;
-            }
-
-            highest = tr;
-        });
-
-        return highest;
-    };
-
-    var createRow = function (id, name, score) {
-        var row = $('<tr id="tr-' + id + '"><td>' + name + '</td><td class="odometer">' + score + '</td><td><button id="button-inc-' + id + '" type="button">+1</button></td></tr>');
-        row.data('score', score);
-        return row;
-    }
-
-    var applyPlayerData = function (pdList, resize) {
-        if (resize) {
-            for (var n = 0; n < players.length; ++n) {
-                var found = false;
-                for (var k = 0; k < pdList.length; ++k) {
-                    if (pdList[k].id == players[n].id) {
-                        found = true;
-                        break;
+            var findPlayer = function(id) {
+                var player = null;
+                $.each(viewModel.players(), function(i, e) {
+                    if (id === e.id) {
+                        player = e;
+                        return false;
                     }
+                    return true;
+                });
+                return player;
+            };
+
+            this.updateScores = function(rows, resize) {
+                if (resize) {
+                    // This means the items in the existing list need to be
+                    // updated to match the items in the incoming rows
+                    var newPlayers = [];
+                    $.each(rows, function (i, row) {
+                        var player = findPlayer(row.id);
+                        if (player !== null) {
+                            // already exists, use it
+                            newPlayers.push(player);
+                        } else {
+                            newPlayers.push(new PlayerViewModel(row.id, row.name, row.score));
+                        }
+                    });
+                    viewModel.players(newPlayers);
                 }
 
-                if (!found) {
-                    players.splice(n, 1);
-                    --n; // adjust position
-                }
-            }
+                $.each(rows, function(i, row) {
+                    var player = findPlayer(row.id);
+                    player.score(row.score);
+                });
 
-            $('#board').find('tbody').find('tr').each(function () {
-                var tr = $(this);
-                var trId = tr.attr('id');
-                var id = trId.substring(trId.indexOf('-') + 1);
-                var found = false;
-                for (var n = 0; n < pdList.length; ++n) {
-                    if (pdList[n].id == id) {
-                        found = true;
-                        break;
+                // Sort, as order may have changed
+                viewModel.players().sort(function(a, b) {
+                    // We want items with higher values to appear first, so it's
+                    // a descending sort
+                    if (a.score() > b.score()) {
+                        return -1;
                     }
-                }
-                if (!found) {
-                    tr.remove();
-                }
-            });
-        }
-
-        for (var n = 0; n < pdList.length; ++n) {
-            var pdata = pdList[n];
-            var pi = findIndex(pdata.id);
-            var tr = $('#tr-' + pdata.id);
-            if (pi != -1 && tr) {
-                if (players[pi].score < pdata.score) {
-                    players[pi].score = pdata.score;
-                    var di = findIndexForData(pdata.name, pdata.score);
-                    console.log(pdata.name + ' was at ' + pi + ' but should move to ' + di);
-                    if (di != -1 && di != pi) {
-                        players.splice(di, 0, players.splice(pi, 1)[0]);
+                    if (a.score() < b.score()) {
+                        return 1;
                     }
+                    return a.playerName.localeCompare(b.playerName);
+                });
+                viewModel.players.valueHasMutated();
 
-                    tr.find('.score').html(pdata.score);
-                    tr.data('score', pdata.score);
-                    var afterTr = findRowForData(pdata.name, pdata.score);
-                    if (afterTr) {
-                        tr.insertBefore(afterTr);
-                    }
-                }
-            } else if (resize) {
-                if (pi == -1) {
-                    var di = findIndexForData(pdata.name, pdata.score);
-                    if (di != -1) {
-                        players.splice(di, 0, {
-                            id: pdata.id,
-                            name: pdata.name,
-                            score: pdata.score
-                        });
-                    }
-                }
+            };
 
-                if (!tr) {
-                    var afterTr = findRowForData(pdata.name, pdata.score);
-                    if (afterTr) {
-                        createRow(pdata.id, pdata.name, pdata.score).insertBefore(afterTr);
-                    }
-                }
-            }
-        }
-    };
+            viewModel.incrementScore = function(player) {
+                player.incrementing(true);
+                var post = $.ajax({
+                    type: 'POST',
+                    url: '{{ board_uri }}/players/' + player.id + '/score-add/',
+                    dataType: 'json'
+                });
 
-    $(function () {
-        for (var n = 0; n < players.length; ++n) {
-            var f = function () {
-                var player = players[n];
-                var incButton = $('#button-inc-' + player.id);
-                incButton.click(function () {
-                    incButton.attr('disabled', 'true');
-                    $.post('{{ board_uri }}/players/' + player.id + '/score-add/', function (data) {
-                        incButton.removeAttr('disabled');
-                        applyPlayerData([data], false);
-                    }, 'json');
+                post.always(function () {
+                    player.incrementing(false);
+                });
+                post.done(function (data) {
+                    window.setTimeout(function() {
+                        viewModel.updateScores([data], false);
+                    }, 0);
                 });
             };
-            f();
-        }
+        };
+
+        ko.bindingHandlers.odometer = {
+            'init': function(element, valueAccessor) {
+                var value = ko.unwrap(valueAccessor());
+                $(element).data("odometer", new Odometer({
+                    el: element,
+                    value: value
+                }));
+            },
+            'update': function (element, valueAccessor) {
+                var odometer = $(element).data("odometer");
+                var value = ko.unwrap(valueAccessor());
+                if (value > odometer.value) {
+                    odometer.update(value);
+                }
+            }
+        };
+
+        var viewModel = new ViewModel(playerData);
+        ko.applyBindings(viewModel, $("#board")[0]);
 
         var es = new EventSource('{{ board_uri }}/');
         es.addEventListener('update', function (e) {
             var data = JSON.parse(e.data);
-            console.log('update: ' + JSON.stringify(data));
-            applyPlayerData(data.players.slice(0,5), true);
+            // Only going to use first 5
+            var playerData = data.players.slice(0, 5);
+            viewModel.updateScores(playerData, true);
         }, false);
-    });
+
+    })();
+
 </script>
 
 </body>
