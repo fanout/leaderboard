@@ -81,27 +81,55 @@
         text-shadow: 0px 0px 4px rgba(255, 255, 81, 1);
     }
 
-    #board th {
+    #board .head {
         text-transform: uppercase;
         font-weight: bold;
     }
 
-    #board th,
-    #board td {
+    #board .head > div > div,
+    #board .main > div > div{
         line-height: 1.8;
         text-align: center;
+        display: inline-block;
     }
 
     #board .playername {
+        width: 40%;
+    }
+    #board .main .playername {
         text-align: left;
     }
+
     #board .score {
+        width: 40%;
+    }
+    #board .main .score-value {
         text-align: right;
+        width: 50%;
     }
 
     #board button.inc {
         font-size: 5vh;
     }
+
+    .knockout-preparing {
+        display: none;
+    }
+
+    .main {
+        position: relative;
+    }
+    .main .row {
+        position: absolute;
+        top: 0; left: 0; width: 100%;
+        transition: all 0.5s ease-out;
+    }
+
+    .main .row.row0 { -webkit-transform: translate3d(0, 0%, 0);   transform: translate3d(0, 0%, 0); }
+    .main .row.row1 { -webkit-transform: translate3d(0, 100%, 0); transform: translate3d(0, 100%, 0); }
+    .main .row.row2 { -webkit-transform: translate3d(0, 200%, 0); transform: translate3d(0, 200%, 0); }
+    .main .row.row3 { -webkit-transform: translate3d(0, 300%, 0); transform: translate3d(0, 300%, 0); }
+    .main .row.row4 { -webkit-transform: translate3d(0, 400%, 0); transform: translate3d(0, 400%, 0); }
 </style>
 <link rel="stylesheet" href="{% static 'odometer-theme-default.css' %}" />
 </head>
@@ -110,26 +138,23 @@
 <section id="main">
     <header>Leaderboard</header>
 
-    <table id="board">
-        <thead>
-        <tr>
-            <th>Player</th>
-            <th>Score</th>
-            <th></th>
-        </tr>
-        </thead>
-        <tbody>
-        <!-- ko foreach: players -->
-            <tr class="knockout">
-                <td class="playername" data-bind="text: playerName"></td>
-                <td class="score"><span data-bind="odometer: score"></span></td>
-                <td>
+    <article id="board">
+        <div class="head">
+            <div class="row">
+                <div class="playername">Player</div>
+                <div class="score">Score</div>
+            </div>
+        </div>
+        <div class="main knockout-preparing" data-bind="foreach: players">
+            <div class="row" data-bind="css: 'row' + $index()">
+                <div class="playername" data-bind="text: playerName"></div>
+                <div class="score"><div class="score-value" data-bind="odometer: score"></div></div>
+                <div>
                     <button class="inc" type="button" data-bind="click: $parent.incrementScore, disable: incrementing">+1</button>
-                </td>
-            </tr>
-        <!-- /ko -->
-        </tbody>
-    </table>
+                </div>
+            </div>
+        </div>
+    </article>
 
 </section>
 
@@ -176,40 +201,50 @@
             };
 
             this.updateScores = function(rows, resize) {
+
+                var newPlayers = [];
                 if (resize) {
-                    // This means the items in the existing list need to be
-                    // updated to match the items in the incoming rows
-                    var newPlayers = [];
                     $.each(rows, function (i, row) {
                         var player = findPlayer(row.id);
                         if (player !== null) {
-                            // already exists, use it
+                            // already exists, use it and update the score only
                             newPlayers.push(player);
+                            player.score(row.score);
                         } else {
+                            // make a new one
                             newPlayers.push(new PlayerViewModel(row.id, row.name, row.score));
                         }
                     });
-                    viewModel.players(newPlayers);
+                } else {
+                    var row = rows[0];
+                    $.each(viewModel.players(), function (i, player) {
+                        if (player.id === row.id) {
+                            player.score(row.score);
+                        }
+                        newPlayers.push(player);
+                    });
+                    newPlayers.sort(function(a, b) {
+                        if (a.score() > b.score()) { return -1; }
+                        if (a.score() < b.score()) { return 1; }
+                        return -(a.playerName.localeCompare(b.playerName));
+                    });
                 }
 
-                $.each(rows, function(i, row) {
-                    var player = findPlayer(row.id);
-                    player.score(row.score);
+                var changed = false;
+
+                $.each(newPlayers, function(i, e) {
+                    if (viewModel.players()[i].id !== e.id) {
+                        changed = true;
+                        return false;
+                    }
+                    return true;
                 });
 
-                // Sort, as order may have changed
-                viewModel.players().sort(function(a, b) {
-                    // We want items with higher values to appear first, so it's
-                    // a descending sort
-                    if (a.score() > b.score()) {
-                        return -1;
-                    }
-                    if (a.score() < b.score()) {
-                        return 1;
-                    }
-                    return a.playerName.localeCompare(b.playerName);
-                });
-                viewModel.players.valueHasMutated();
+                if (changed) {
+                    viewModel.players.valueWillMutate();
+                    viewModel.players(newPlayers);
+                    viewModel.players.valueHasMutated();
+                }
 
             };
 
@@ -225,9 +260,7 @@
                     player.incrementing(false);
                 });
                 post.done(function (data) {
-                    window.setTimeout(function() {
-                        viewModel.updateScores([data], false);
-                    }, 0);
+                    viewModel.updateScores([data], false);
                 });
             };
         };
@@ -251,6 +284,7 @@
 
         var viewModel = new ViewModel(playerData);
         ko.applyBindings(viewModel, $("#board")[0]);
+        $(".knockout-preparing").removeClass("knockout-preparing");
 
         var es = new EventSource('{{ board_uri }}/');
         es.addEventListener('update', function (e) {
