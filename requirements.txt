@@ -18,7 +18,7 @@ pyOpenSSL==0.14
 pyasn1==0.1.7
 pycparser==2.10
 requests==2.6.0
-rethinkdb==1.16.0-4
+rethinkdb==2.0.0-1
 six==1.9.0
 static3==0.5.1
 wsgiref==0.1.2
