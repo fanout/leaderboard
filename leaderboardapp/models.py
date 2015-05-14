@@ -182,6 +182,7 @@ class Player(object):
 			raise ObjectDoesNotExist()
 		p = Player()
 		p.apply_rowdata(row)
+		return p
 
 	@staticmethod
 	def get_all_for_board(board):
