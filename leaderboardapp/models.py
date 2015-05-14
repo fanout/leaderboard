@@ -196,7 +196,11 @@ class Player(object):
 	@staticmethod
 	def get_top_for_board(board, limit=10):
 		out = list()
-		for row in Player.get_table().order_by(r.desc('score')).filter({'board': board.id}).limit(limit).run(_get_conn()):
+		rows = Player.get_table().\
+			order_by(r.desc('score')).\
+			filter({'board': board.id}).\
+			limit(limit).run(_get_conn())
+		for row in rows:
 			p = Player(board=board)
 			p.apply_rowdata(row)
 			out.append(p)
