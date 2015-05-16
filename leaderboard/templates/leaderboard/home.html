@@ -10,7 +10,7 @@
         box-sizing: border-box;
     }
     *, *:before, *:after {
-      box-sizing: inherit;
+        box-sizing: inherit;
     }
     body {
         display: -webkit-flex;
@@ -86,24 +86,28 @@
         font-weight: bold;
     }
 
-    #board .head > div > div,
-    #board .main > div > div{
+    .row {
+        transition: all 500ms ease;
+        box-sizing: border-box;
+    }
+
+    .row > div {
         line-height: 1.8;
         text-align: center;
         display: inline-block;
     }
 
-    #board .playername {
+    .row .name {
         width: 40%;
     }
-    #board .main .playername {
+    .main .name {
         text-align: left;
     }
 
-    #board .score {
+    .row .score {
         width: 40%;
     }
-    #board .main .score-value {
+    .main .score-value {
         text-align: right;
         width: 50%;
     }
@@ -111,25 +115,6 @@
     #board button.inc {
         font-size: 5vh;
     }
-
-    .knockout-preparing {
-        display: none;
-    }
-
-    .main {
-        position: relative;
-    }
-    .main .row {
-        position: absolute;
-        top: 0; left: 0; width: 100%;
-        transition: all 0.5s ease-out;
-    }
-
-    .main .row.row0 { -webkit-transform: translate3d(0, 0%, 0);   transform: translate3d(0, 0%, 0); }
-    .main .row.row1 { -webkit-transform: translate3d(0, 100%, 0); transform: translate3d(0, 100%, 0); }
-    .main .row.row2 { -webkit-transform: translate3d(0, 200%, 0); transform: translate3d(0, 200%, 0); }
-    .main .row.row3 { -webkit-transform: translate3d(0, 300%, 0); transform: translate3d(0, 300%, 0); }
-    .main .row.row4 { -webkit-transform: translate3d(0, 400%, 0); transform: translate3d(0, 400%, 0); }
 </style>
 <link rel="stylesheet" href="{% static 'odometer-theme-default.css' %}" />
 </head>
@@ -138,37 +123,121 @@
 <section id="main">
     <header>Leaderboard</header>
 
-    <article id="board">
-        <div class="head">
-            <div class="row">
-                <div class="playername">Player</div>
-                <div class="score">Score</div>
-            </div>
-        </div>
-        <div class="main knockout-preparing" data-bind="foreach: players">
-            <div class="row" data-bind="css: 'row' + $index()">
-                <div class="playername" data-bind="text: playerName"></div>
-                <div class="score"><div class="score-value" data-bind="odometer: score"></div></div>
-                <div>
-                    <button class="inc" type="button" data-bind="click: $parent.incrementScore, disable: incrementing">+1</button>
-                </div>
-            </div>
-        </div>
-    </article>
+    <div id="board"></div>
 
 </section>
 
 <script src="{% static 'jquery-1.11.2.min.js' %}"></script>
-<script src="{% static 'knockoutjs-3.3.0.js' %}"></script>
-<script src="{% static 'eventsource.min.js' %}"></script>
+<script src="{% static 'react-with-addons.min.js' %}"></script>
+<script src="{% static 'JSXTransformer.js' %}"></script>
 <script src="{% static 'odometer.min.js' %}"></script>
+<script src="{% static 'McFly.js' %}"></script>
 <script>
+    /* McFly to implement Flux */
+    (function() {
+        var Flux = new McFly();
 
+        var _players = [];
+
+        var addOrUpdatePlayer = function(player) {
+            var playerRow = null;
+            $.each(_players, function(i, row) {
+                if (row.id === player.id) {
+                    playerRow = row;
+                    return false;
+                }
+                return true;
+            });
+
+            if (playerRow !== null) {
+                // Name is not likely to change, but if the ID is the same we assume it's intentional
+                playerRow.name = player.name;
+                playerRow.score = player.score;
+            } else {
+                // Add new player
+                playerRow = {"id": player.id, "name": player.name, "score": player.score};
+                _players.push(playerRow);
+            }
+        };
+
+        var checkPlayersOrder = function() {
+            // -- Sort and take the top 5 --
+
+            // Since sort() does an in-place sort, we use this trick to make a copy.
+            var players = _players.slice(0);
+
+            // Sort, name breaks tie.
+            players.sort(function(a, b) {
+                if (a.score > b.score) { return -1; }
+                if (a.score < b.score) { return 1; }
+                return a.name.localeCompare(b.name);
+            });
+
+            // Top 5
+            players = players.slice(0, 5);
+
+            _players = players;
+        };
+
+        var updatePlayers = function(players, clear) {
+            if (clear) {
+                _players = [];
+            }
+
+            // We add or update one by one to make sure we never end up with duplicate entries.
+            $.each(players, function(i, player) {
+                addOrUpdatePlayer(player);
+            });
+
+            checkPlayersOrder();
+        };
+
+        var PlayersStore = Flux.createStore({
+            getPlayers: function() {
+                return _players;
+            }
+        }, function(payload) {
+            switch(payload.actionType) {
+                case 'SET_PLAYERS':
+                    updatePlayers(payload.players, true);
+                    break;
+                case 'UPDATE_PLAYERS':
+                    updatePlayers(payload.players, false);
+                    break;
+                default:
+                    return true;
+            }
+
+            PlayersStore.emitChange();
+        });
+
+        window.PlayersStore = PlayersStore;
+
+        var PlayersActions = Flux.createActions({
+            setPlayers: function(players) {
+                return {
+                    actionType: 'SET_PLAYERS',
+                    players: players
+                };
+            },
+            updatePlayers: function(players) {
+                return {
+                    actionType: 'UPDATE_PLAYERS',
+                    players: players
+                };
+            }
+        });
+
+        window.PlayersActions = PlayersActions;
+    })();
+</script>
+<script>
+    /* Initial data */
     (function() {
 
         var playerData = [
             {% for player in players %}
-                { "id": "{{ player.id }}", "playerName": "{{ player.name }}", "score": {{ player.score }} }
+                { "id": "{{ player.id }}", "name": "{{ player.name }}", "score": {{ player.score }} }
                 {% if not forloop.last %},{% endif %}
             {% endfor %}
         ];
@@ -176,123 +245,195 @@
         // Only going to use first five
         playerData = playerData.slice(0, 5);
 
-        var PlayerViewModel = function(id, playerName, score) {
-            this.id = id;
-            this.playerName = playerName;
-            this.score = ko.observable(score);
-            this.incrementing = ko.observable(false);
+        window.PlayersActions.setPlayers(playerData);
+
+    })();
+</script>
+<script>
+    /* EventSource-based updates */
+    (function() {
+
+        var boardEventSource = new EventSource("{{ board_uri }}/");
+        boardEventSource.addEventListener('update', function (e) {
+            var data = JSON.parse(e.data);
+            window.PlayersActions.updatePlayers(data.players);
+        });
+
+    })();
+</script>
+<script>
+    /* A way for the +1 button to increment a specific player's score */
+    (function() {
+
+        var incrementPlayerScore = function(id) {
+            var post = $.ajax({
+                type: 'POST',
+                url: '{{ board_uri }}/players/' + id + '/score-add/',
+                dataType: 'json'
+            });
+
+            post.done(function (data) {
+                window.PlayersActions.updatePlayers([data]);
+            });
+
+            return post;
         };
 
-        var ViewModel = function(data) {
-            var viewModel = this;
-            var playerViewModels = $.map(data, function(e) { return new PlayerViewModel(e.id, e.playerName, e.score); });
-            viewModel.players = ko.observableArray(playerViewModels);
+        window.incrementPlayerScore = incrementPlayerScore;
 
-            var findPlayer = function(id) {
-                var player = null;
-                $.each(viewModel.players(), function(i, e) {
-                    if (id === e.id) {
-                        player = e;
-                        return false;
-                    }
-                    return true;
-                });
-                return player;
-            };
+    })();
+</script>
+<script src="{% static 'react-magic-move.js' %}"></script>
+<script type="text/jsx">
 
-            this.updateScores = function(rows, resize) {
+    (function() {
 
-                var newPlayers = [];
-                if (resize) {
-                    $.each(rows, function (i, row) {
-                        var player = findPlayer(row.id);
-                        if (player !== null) {
-                            // already exists, use it and update the score only
-                            newPlayers.push(player);
-                            player.score(row.score);
-                        } else {
-                            // make a new one
-                            newPlayers.push(new PlayerViewModel(row.id, row.name, row.score));
-                        }
-                    });
-                } else {
-                    var row = rows[0];
-                    $.each(viewModel.players(), function (i, player) {
-                        if (player.id === row.id) {
-                            player.score(row.score);
-                        }
-                        newPlayers.push(player);
-                    });
-                    newPlayers.sort(function(a, b) {
-                        if (a.score() > b.score()) { return -1; }
-                        if (a.score() < b.score()) { return 1; }
-                        return -(a.playerName.localeCompare(b.playerName));
-                    });
-                }
-
-                var changed = false;
-
-                $.each(newPlayers, function(i, e) {
-                    if (viewModel.players()[i].id !== e.id) {
-                        changed = true;
-                        return false;
-                    }
-                    return true;
-                });
-
-                if (changed) {
-                    viewModel.players.valueWillMutate();
-                    viewModel.players(newPlayers);
-                    viewModel.players.valueHasMutated();
-                }
-
-            };
-
-            viewModel.incrementScore = function(player) {
-                player.incrementing(true);
-                var post = $.ajax({
-                    type: 'POST',
-                    url: '{{ board_uri }}/players/' + player.id + '/score-add/',
-                    dataType: 'json'
-                });
-
-                post.always(function () {
-                    player.incrementing(false);
-                });
-                post.done(function (data) {
-                    viewModel.updateScores([data], false);
-                });
-            };
-        };
-
-        ko.bindingHandlers.odometer = {
-            'init': function(element, valueAccessor) {
-                var value = ko.unwrap(valueAccessor());
-                $(element).data("odometer", new Odometer({
-                    el: element,
-                    value: value
-                }));
+        var LeaderboardApp = React.createClass({
+            mixins: [window.PlayersStore.mixin],
+            getInitialState: function() {
+                return { playerData: window.PlayersStore.getPlayers() };
             },
-            'update': function (element, valueAccessor) {
-                var odometer = $(element).data("odometer");
-                var value = ko.unwrap(valueAccessor());
+            onChange: function() {
+                this.setState({ playerData: window.PlayersStore.getPlayers() });
+            },
+            render: function() {
+                return (
+                    <Leaderboard players={this.state.playerData} />
+                );
+            }
+        });
+
+        var Leaderboard = React.createClass({
+            render: function() {
+                return (
+                    <article>
+                        <LeaderboardHeader />
+                        <LeaderboardBody players={this.props.players} />
+                    </article>
+                );
+            }
+        });
+
+        var LeaderboardHeader = React.createClass({
+            render: function() {
+                return (
+                    <div className="head">
+                        <div className="row">
+                            <div className="name">Player</div>
+                            <div className="score">Score</div>
+                        </div>
+                    </div>
+                );
+            }
+        });
+
+        var LeaderboardBody = React.createClass({
+            render: function() {
+                var rows = [];
+                this.props.players.forEach(function(player, index) {
+                    rows.push(<LeaderboardRow key={player.id} player={player} index={index} />);
+                });
+
+                return (
+                    <MagicMove className="main" portalBaseId="board">
+                        {rows}
+                    </MagicMove>
+                );
+            }
+        });
+
+        var LeaderboardRow = React.createClass({
+            getInitialState: function() {
+                return {disabled: false};
+            },
+            handleClick: function() {
+                if (this.state.disabled) {
+                    return;
+                }
+
+                this.setState({disabled: true});
+                var increment = window.incrementPlayerScore(this.props.player.id);
+                increment.always(function() {
+                    this.setState({disabled: false});
+                }.bind(this));
+            },
+            render: function() {
+                return (
+                    <div className="row" style={this.props.style}>
+                        <div className="name">{this.props.player.name}</div>
+                        <div className="score">
+                            <OdometerComponent className="score-value" value={this.props.player.score} />
+                        </div>
+                        <div>
+                            <button className="inc" type="button" disabled={this.state.disabled} onClick={this.handleClick}>+1</button>
+                        </div>
+                    </div>
+                );
+            }
+        });
+
+        var SafeOdometer = function(opts) {
+            var odometer = new Odometer(opts);
+            var odometerTargetValue = -1;
+
+            var odometerDidFinishUpdating = function() {
+
+                // Get the target value
+                var targetValue = odometerTargetValue;
+
+                // Set the target value to -1, indicating that the odometer is no
+                // longer moving.
+                odometerTargetValue = -1;
+
+                // If the target value has moved since the odometer finished,
+                // move it again to the new target.
+
+                if (targetValue !== odometer.value) {
+                    this.update(targetValue);
+                }
+            };
+
+            odometer.el.addEventListener('odometerdone', function() { odometerDidFinishUpdating(); }.bind(this));
+
+            this.update = function(value) {
+
+                // Odometer is currently moving if target value is not -1
+                // In that case don't call update, just update the target value.
+
+                if (odometerTargetValue !== -1) {
+                    // Only increment. Target value should never fall.
+                    if (value > odometerTargetValue) {
+                        odometerTargetValue = value;
+                    }
+                    return;
+                }
+
+                // Only increment. Value should never fall.
                 if (value > odometer.value) {
                     odometer.update(value);
+                    odometerTargetValue = value;
                 }
-            }
+            };
         };
 
-        var viewModel = new ViewModel(playerData);
-        ko.applyBindings(viewModel, $("#board")[0]);
-        $(".knockout-preparing").removeClass("knockout-preparing");
+        var OdometerComponent = React.createClass({
+            componentDidMount: function() {
+                this.odometer = new SafeOdometer({
+                    el: this.getDOMNode(),
+                    value: this.props.value
+                });
+            },
+            componentDidUpdate: function() {
+                this.odometer.update(this.props.value);
+            },
+            render: function() {
+                return (
+                    <div className={this.props.className} />
+                );
+            }
+        })
 
-        var es = new EventSource('{{ board_uri }}/');
-        es.addEventListener('update', function (e) {
-            var data = JSON.parse(e.data);
-            // Only going to use first 5
-            var playerData = data.players.slice(0, 5);
-            viewModel.updateScores(playerData, true);
-        }, false);
+        React.render(<LeaderboardApp />, document.getElementById("board"));
 
     })();
 
