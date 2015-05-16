@@ -35,7 +35,7 @@
 
         componentDidMount:function () {
             this.makePortal();
-            this.renderClonesInitially();
+            this.renderClones(this.props, false);
         },
 
         componentWillUnmount:function () {
@@ -48,7 +48,7 @@
 
         componentDidUpdate:function (prevProps) {
             if (this.state.animating) {
-                this.renderClonesToNewPositions(prevProps);
+                this.renderClones(prevProps, false);
             }
         },
 
@@ -82,20 +82,8 @@
                 return;
             }
             this.addTransitionEndEvent();
-            var overrides = {
-                animating: true,
-                positions: this.getPositions()
-            };
-            this.renderClones(nextProps, overrides, function()  {
-                this.setState({ animating: true });
-            }.bind(this));
-        },
-
-        renderClonesToNewPositions:function (prevProps) {
-            var overrides = {
-                positions: this.getPositions()
-            };
-            this.renderClones(prevProps, overrides);
+            this.portalNode.style.position = '';
+            this.renderClones(nextProps, true);
         },
 
         finishAnimation:function () {
@@ -125,15 +113,10 @@
             return positions;
         },
 
-        renderClonesInitially:function () {
+        renderClones:function (props, animating) {
             var positions = this.getPositions();
-            // this.props.positions = this.getPositions();
-            React.render(React.createElement(Clones, React.__spread({},  this.props, {positions: positions})), this.portalNode);
-        },
-
-        renderClones:function (props, overrides, cb) {
-            this.portalNode.style.position = '';
-            React.render(React.createElement(Clones, React.__spread({},  props,  overrides)), this.portalNode, cb);
+            var cb = animating ? function()  { this.setState({ animating: true }); }.bind(this) : null;
+            React.render(React.createElement(Clones, React.__spread({},  props, {positions: positions})), this.portalNode, cb);
         },
 
         childrenWithRefs:function () {
