@@ -129,8 +129,110 @@
 <script src="{% static 'react-with-addons.min.js' %}"></script>
 <script src="{% static 'JSXTransformer.js' %}"></script>
 <script src="{% static 'odometer.min.js' %}"></script>
-<script type="text/javascript">
+<script src="{% static 'McFly.js' %}"></script>
+<script>
+    /* McFly to implement Flux */
     (function() {
+        var Flux = new McFly();
+
+        var _players = [];
+
+        var addOrUpdatePlayer = function(player) {
+            var playerRow = null;
+            $.each(_players, function(i, row) {
+                if (row.id === player.id) {
+                    playerRow = row;
+                    return false;
+                }
+                return true;
+            });
+
+            if (playerRow !== null) {
+                // Name is not likely to change, but if the ID is the same we assume it's intentional
+                playerRow.name = player.name;
+                playerRow.score = player.score;
+            } else {
+                // Add new player
+                playerRow = {"id": player.id, "name": player.name, "score": player.score};
+                _players.push(playerRow);
+            }
+        };
+
+        var checkPlayersOrder = function() {
+            // -- Sort and take the top 5 --
+
+            // Since sort() does an in-place sort, we use this trick to make a copy.
+            var players = _players.slice(0);
+
+            // Sort, name breaks tie.
+            players.sort(function(a, b) {
+                if (a.score > b.score) { return -1; }
+                if (a.score < b.score) { return 1; }
+                return a.name.localeCompare(b.name);
+            });
+
+            // Top 5
+            players = players.slice(0, 5);
+
+            _players = players;
+        };
+
+        var updatePlayers = function(players, clear) {
+            if (clear) {
+                _players = [];
+            }
+
+            // We add or update one by one to make sure we never end up with duplicate entries.
+            $.each(players, function(i, player) {
+                addOrUpdatePlayer(player);
+            });
+
+            checkPlayersOrder();
+        };
+
+        var PlayersStore = Flux.createStore({
+            getPlayers: function() {
+                return _players;
+            }
+        }, function(payload) {
+            switch(payload.actionType) {
+                case 'SET_PLAYERS':
+                    updatePlayers(payload.players, true);
+                    break;
+                case 'UPDATE_PLAYERS':
+                    updatePlayers(payload.players, false);
+                    break;
+                default:
+                    return true;
+            }
+
+            PlayersStore.emitChange();
+        });
+
+        window.PlayersStore = PlayersStore;
+
+        var PlayersActions = Flux.createActions({
+            setPlayers: function(players) {
+                return {
+                    actionType: 'SET_PLAYERS',
+                    players: players
+                };
+            },
+            updatePlayer: function(players) {
+                return {
+                    actionType: 'UPDATE_PLAYERS',
+                    players: players
+                };
+            }
+        });
+
+        window.PlayersActions = PlayersActions;
+    })();
+</script>
+<script>
+    /* Initial data */
+    (function() {
+
         var playerData = [
             {% for player in players %}
                 { "id": "{{ player.id }}", "name": "{{ player.name }}", "score": {{ player.score }} }
@@ -141,11 +243,19 @@
         // Only going to use first five
         playerData = playerData.slice(0, 5);
 
-        window.playerData = playerData;
+        window.PlayersActions.setPlayers(playerData);
 
-        var es = new EventSource("{{ board_uri }}/");
-        window.boardEventSource = es;
+    })();
+</script>
+<script>
+    /* EventSource-based updates */
+    (function() {
 
+        var boardEventSource = new EventSource("{{ board_uri }}/");
+        boardEventSource.addEventListener('update', function (e) {
+            var data = JSON.parse(e.data);
+            window.PlayersActions.updatePlayer(data.players);
+        });
 
     })();
 </script>
@@ -154,14 +264,12 @@
     (function() {
 
         var LeaderboardApp = React.createClass({
+            mixins: [window.PlayersStore.mixin],
             getInitialState: function() {
-                return { playerData: window.playerData }
+                return { playerData: window.PlayersStore.getPlayers() };
             },
-            componentDidMount: function() {
-                window.boardEventSource.addEventListener('update', function (e) {
-                    var data = JSON.parse(e.data);
-                    this.setState({ playerData: data.players });
-                }.bind(this));
+            onChange: function() {
+                this.setState({ playerData: window.PlayersStore.getPlayers() });
             },
             render: function() {
                 return (
@@ -196,23 +304,8 @@
 
         var LeaderboardBody = React.createClass({
             render: function() {
-                // -- Sort and take the top 5 --
-
-                // Since sort() does an in-place sort, we use this trick to make a copy.
-                var players = this.props.players.slice(0);
-
-                // Sort, name breaks tie.
-                players.sort(function(a, b) {
-                    if (a.score > b.score) { return -1; }
-                    if (a.score < b.score) { return 1; }
-                    return a.name.localeCompare(b.name);
-                });
-
-                // Top 5
-                players = players.slice(0, 5);
-
                 var rows = [];
-                players.forEach(function(player, index) {
+                this.props.players.forEach(function(player, index) {
                     rows.push(<LeaderboardRow key={player.id} player={player} index={index} />);
                 });
 
