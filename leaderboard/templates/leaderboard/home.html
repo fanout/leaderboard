@@ -369,9 +369,43 @@
             }
         });
 
+        var SafeOdometer = function(opts) {
+            var odometer = new Odometer(opts);
+            var odometerTargetValue = -1;
+
+            var odometerDidFinishUpdating = function() {
+
+                // If the target value has moved since the odometer finished,
+                // move it again to the new target.
+
+                // Otherwise set the target value to -1, indicating it's ready
+                // to be moved again.
+
+                if (odometerTargetValue !== odometer.value) {
+                    odometer.update(odometerTargetValue);
+                } else {
+                    odometerTargetValue = -1;
+                }
+            };
+
+            odometer.el.addEventListener('odometerdone', function() { odometerDidFinishUpdating(); }.bind(this));
+
+            this.update = function(value) {
+
+                // Odometer is currently moving if target value is not -1
+                // In that case don't call update, just update the target value.
+
+                if (odometerTargetValue === -1) {
+                    odometer.update(value);
+                }
+
+                odometerTargetValue = value;
+            };
+        };
+
         var OdometerComponent = React.createClass({
-            componentDidMount: function(){
-                this.odometer = new Odometer({
+            componentDidMount: function() {
+                this.odometer = new SafeOdometer({
                     el: this.getDOMNode(),
                     value: this.props.value
                 });
