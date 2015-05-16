@@ -218,7 +218,7 @@
                     players: players
                 };
             },
-            updatePlayer: function(players) {
+            updatePlayers: function(players) {
                 return {
                     actionType: 'UPDATE_PLAYERS',
                     players: players
@@ -254,8 +254,30 @@
         var boardEventSource = new EventSource("{{ board_uri }}/");
         boardEventSource.addEventListener('update', function (e) {
             var data = JSON.parse(e.data);
-            window.PlayersActions.updatePlayer(data.players);
+            window.PlayersActions.updatePlayers(data.players);
         });
+
+    })();
+</script>
+<script>
+    /* A way for the +1 button to increment a specific player's score */
+    (function() {
+
+        var incrementPlayerScore = function(id) {
+            var post = $.ajax({
+                type: 'POST',
+                url: '{{ board_uri }}/players/' + id + '/score-add/',
+                dataType: 'json'
+            });
+
+            post.done(function (data) {
+                window.PlayersActions.updatePlayers([data]);
+            });
+
+            return post;
+        };
+
+        window.incrementPlayerScore = incrementPlayerScore;
 
     })();
 </script>
@@ -318,6 +340,20 @@
         });
 
         var LeaderboardRow = React.createClass({
+            getInitialState: function() {
+                return {disabled: false};
+            },
+            handleClick: function() {
+                if (this.state.disabled) {
+                    return;
+                }
+
+                this.setState({disabled: true});
+                var increment = window.incrementPlayerScore(this.props.player.id);
+                increment.always(function() {
+                    this.setState({disabled: false});
+                }.bind(this));
+            },
             render: function() {
                 return (
                     <div className={'row row' + this.props.index}>
@@ -326,7 +362,7 @@
                             <OdometerComponent className="score-value" value={this.props.player.score} />
                         </div>
                         <div>
-                            <button className="inc" type="button">+1</button>
+                            <button className="inc" type="button" disabled={this.state.disabled} onClick={this.handleClick}>+1</button>
                         </div>
                     </div>
                 );
