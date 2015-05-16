@@ -10,7 +10,7 @@
         box-sizing: border-box;
     }
     *, *:before, *:after {
-      box-sizing: inherit;
+        box-sizing: inherit;
     }
     body {
         display: -webkit-flex;
@@ -86,24 +86,28 @@
         font-weight: bold;
     }
 
-    #board .head > div > div,
-    #board .main > div > div{
+    .row {
+        transition: all 500ms ease;
+        box-sizing: border-box;
+    }
+
+    .row > div {
         line-height: 1.8;
         text-align: center;
         display: inline-block;
     }
 
-    #board .name {
+    .row .name {
         width: 40%;
     }
-    #board .main .name {
+    .main .name {
         text-align: left;
     }
 
-    #board .score {
+    .row .score {
         width: 40%;
     }
-    #board .main .score-value {
+    .main .score-value {
         text-align: right;
         width: 50%;
     }
@@ -279,6 +283,7 @@
 
     })();
 </script>
+<script src="{% static 'react-magic-move.js' %}"></script>
 <script type="text/jsx">
 
     (function() {
@@ -330,9 +335,9 @@
                 });
 
                 return (
-                    <div className="main">
+                    <MagicMove className="main" portalBaseId="board">
                         {rows}
-                    </div>
+                    </MagicMove>
                 );
             }
         });
@@ -354,7 +359,7 @@
             },
             render: function() {
                 return (
-                    <div className="row">
+                    <div className="row" style={this.props.style}>
                         <div className="name">{this.props.player.name}</div>
                         <div className="score">
                             <OdometerComponent className="score-value" value={this.props.player.score} />
