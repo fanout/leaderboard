@@ -119,9 +119,7 @@
 <section id="main">
     <header>Leaderboard</header>
 
-    <div id="board">
-
-    </div>
+    <div id="board"></div>
 
 </section>
 
@@ -356,7 +354,7 @@
             },
             render: function() {
                 return (
-                    <div className={'row row' + this.props.index}>
+                    <div className="row">
                         <div className="name">{this.props.player.name}</div>
                         <div className="score">
                             <OdometerComponent className="score-value" value={this.props.player.score} />
@@ -421,7 +419,7 @@
                 });
             },
             componentDidUpdate: function() {
-                this.odometer.update(this.props.value)
+                this.odometer.update(this.props.value);
             },
             render: function() {
                 return (
