@@ -375,16 +375,18 @@
 
             var odometerDidFinishUpdating = function() {
 
+                // Get the target value
+                var targetValue = odometerTargetValue;
+
+                // Set the target value to -1, indicating that the odometer is no
+                // longer moving.
+                odometerTargetValue = -1;
+
                 // If the target value has moved since the odometer finished,
                 // move it again to the new target.
 
-                // Otherwise set the target value to -1, indicating it's ready
-                // to be moved again.
-
-                if (odometerTargetValue !== odometer.value) {
-                    odometer.update(odometerTargetValue);
-                } else {
-                    odometerTargetValue = -1;
+                if (targetValue !== odometer.value) {
+                    this.update(targetValue);
                 }
             };
 
@@ -395,11 +397,19 @@
                 // Odometer is currently moving if target value is not -1
                 // In that case don't call update, just update the target value.
 
-                if (odometerTargetValue === -1) {
-                    odometer.update(value);
+                if (odometerTargetValue !== -1) {
+                    // Only increment. Target value should never fall.
+                    if (value > odometerTargetValue) {
+                        odometerTargetValue = value;
+                    }
+                    return;
                 }
 
-                odometerTargetValue = value;
+                // Only increment. Value should never fall.
+                if (value > odometer.value) {
+                    odometer.update(value);
+                    odometerTargetValue = value;
+                }
             };
         };
 
