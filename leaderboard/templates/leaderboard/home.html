@@ -58,14 +58,14 @@
         -moz-box-shadow: inset 5px 5px 5px 0px rgba(0,0,0,0.75);
         box-shadow: inset 5px 5px 5px 0px rgba(0,0,0,0.75);
 
-        font-size: 6vh;
+        font-size: 4vw;
     }
 
     #main > header {
         font-family: "Arial Black", Gadget, sans-serif;
         color: #DAA520;
         text-shadow: 2px 2px 2px rgba(0, 0, 0, 1);
-        font-size: 10vh;
+        font-size: 8vw;
 
         text-transform: uppercase;
         text-align: center;
@@ -91,7 +91,7 @@
     }
 
     .row > div {
-        line-height: 1.8;
+        line-height: 12vh;
         text-align: center;
         display: inline-block;
     }
@@ -112,7 +112,7 @@
     }
 
     #board button.inc {
-        font-size: 5vh;
+        font-size: 4vw;
     }
 
     .main {
@@ -131,6 +131,19 @@
     .main .row.pos4  { -webkit-transform: translate3d(0, 300%, 0); transform: translate3d(0, 300%, 0); }
     .main .row.pos5  { -webkit-transform: translate3d(0, 400%, 0); transform: translate3d(0, 400%, 0); }
 
+    @media screen and (min-aspect-ratio: 6/8) {
+        #main {
+            font-size: 4vh;
+        }
+
+        #board button.inc {
+            font-size: 4vh;
+        }
+
+        .row > div {
+            line-height: 10vh;
+        }
+    }
 </style>
 <link rel="stylesheet" href="{% static 'odometer-theme-default.css' %}" />
 </head>
