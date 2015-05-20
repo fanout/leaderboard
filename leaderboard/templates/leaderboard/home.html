@@ -87,7 +87,6 @@
     }
 
     .row {
-        transition: all 500ms ease;
         box-sizing: border-box;
     }
 
@@ -115,6 +114,23 @@
     #board button.inc {
         font-size: 5vh;
     }
+
+    .main {
+        position: relative;
+    }
+
+    .main .row {
+        position: absolute;
+        width: 100%;
+        transition: all 500ms ease;
+    }
+
+    .main .row.pos1  { -webkit-transform: translate3d(0, 0%, 0);   transform: translate3d(0, 0%, 0); }
+    .main .row.pos2  { -webkit-transform: translate3d(0, 100%, 0); transform: translate3d(0, 100%, 0); }
+    .main .row.pos3  { -webkit-transform: translate3d(0, 200%, 0); transform: translate3d(0, 200%, 0); }
+    .main .row.pos4  { -webkit-transform: translate3d(0, 300%, 0); transform: translate3d(0, 300%, 0); }
+    .main .row.pos5  { -webkit-transform: translate3d(0, 400%, 0); transform: translate3d(0, 400%, 0); }
+
 </style>
 <link rel="stylesheet" href="{% static 'odometer-theme-default.css' %}" />
 </head>
@@ -192,6 +208,22 @@
             checkPlayersOrder();
         };
 
+        var incrementPlayerScore = function(playerId) {
+            // Go through player list to find the player with the given ID
+            var thePlayer = null;
+            $.each(_players, function(i, player) {
+                if (player.id === playerId) {
+                    thePlayer = player;
+                    return false;
+                }
+                return true;
+            });
+            if (thePlayer !== null) {
+                thePlayer.score++;
+                checkPlayersOrder();
+            }
+        };
+
         var PlayersStore = Flux.createStore({
             getPlayers: function() {
                 return _players;
@@ -203,6 +235,9 @@
                     break;
                 case 'UPDATE_PLAYERS':
                     updatePlayers(payload.players, false);
+                    break;
+                case 'INCREMENT_PLAYER_SCORE':
+                    incrementPlayerScore(payload.playerId);
                     break;
                 default:
                     return true;
@@ -224,6 +259,12 @@
                 return {
                     actionType: 'UPDATE_PLAYERS',
                     players: players
+                };
+            },
+            incrementPlayerScore: function(playerId) {
+                return {
+                    actionType: 'INCREMENT_PLAYER_SCORE',
+                    playerId: playerId
                 };
             }
         });
@@ -266,6 +307,8 @@
     (function() {
 
         var incrementPlayerScore = function(id) {
+            window.PlayersActions.incrementPlayerScore(id);
+
             var post = $.ajax({
                 type: 'POST',
                 url: '{{ board_uri }}/players/' + id + '/score-add/',
@@ -283,7 +326,6 @@
 
     })();
 </script>
-<script src="{% static 'react-magic-move.js' %}"></script>
 <script type="text/jsx">
 
     (function() {
@@ -329,15 +371,22 @@
 
         var LeaderboardBody = React.createClass({
             render: function() {
-                var rows = [];
+                var players = [];
                 this.props.players.forEach(function(player, index) {
-                    rows.push(<LeaderboardRow key={player.id} player={player} index={index} />);
+                    players.push({index: index, player: player});
                 });
-
+                players.sort(function(a, b) {
+                    return a.player.id.localeCompare(b.player.id);
+                });
+                var rows = [];
+                players.forEach(function(ref) {
+                    var player = ref.player;
+                    rows.push(<LeaderboardRow key={player.id} player={player} index={ref.index}/>);
+                });
                 return (
-                    <MagicMove className="main" portalBaseId="board">
+                    <div className="main">
                         {rows}
-                    </MagicMove>
+                    </div>
                 );
             }
         });
@@ -359,7 +408,7 @@
             },
             render: function() {
                 return (
-                    <div className="row" style={this.props.style}>
+                    <div className={'row pos' + (this.props.index + 1)} style={this.props.style}>
                         <div className="name">{this.props.player.name}</div>
                         <div className="score">
                             <OdometerComponent className="score-value" value={this.props.player.score} />
@@ -376,7 +425,7 @@
             var odometer = new Odometer(opts);
             var odometerTargetValue = -1;
 
-            var odometerDidFinishUpdating = function() {
+            this.odometerDidFinishUpdating = function() {
 
                 // Get the target value
                 var targetValue = odometerTargetValue;
@@ -393,7 +442,7 @@
                 }
             };
 
-            odometer.el.addEventListener('odometerdone', function() { odometerDidFinishUpdating(); }.bind(this));
+            odometer.el.addEventListener('odometerdone', function() { this.odometerDidFinishUpdating(); }.bind(this));
 
             this.update = function(value) {
 
@@ -410,8 +459,8 @@
 
                 // Only increment. Value should never fall.
                 if (value > odometer.value) {
-                    odometer.update(value);
                     odometerTargetValue = value;
+                    odometer.update(value);
                 }
             };
         };
@@ -422,6 +471,9 @@
                     el: this.getDOMNode(),
                     value: this.props.value
                 });
+            },
+            shouldComponentUpdate: function(nextProps) {
+                return nextProps.value !== this.props.value;
             },
             componentDidUpdate: function() {
                 this.odometer.update(this.props.value);
