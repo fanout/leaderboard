@@ -219,5 +219,5 @@ class Player(object):
 	@staticmethod
 	def get_all_changes():
 		# use dedicated connection
-		changes_conn = r.connect(hostname, port)
+		changes_conn = r.connect(hostname, port, auth_key=password)
 		return Player.get_table().changes().run(changes_conn)
