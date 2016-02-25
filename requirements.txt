@@ -5,6 +5,7 @@ cffi==0.9.2
 cryptography==0.8.2
 dj-database-url==0.3.0
 dj-static==0.0.6
+django-dotenv==1.4.1
 django-grip==1.6.1
 django-toolbelt==0.0.1
 enum34==1.0.4
@@ -18,7 +19,7 @@ pyOpenSSL==0.14
 pyasn1==0.1.7
 pycparser==2.10
 requests==2.6.0
-rethinkdb==2.0.0-1
+rethinkdb==2.2.0.post4
 six==1.9.0
 static3==0.5.1
 whitenoise==1.0.6

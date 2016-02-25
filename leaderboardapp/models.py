@@ -7,6 +7,7 @@ _threadlocal = threading.local()
 
 _url_parsed = urlparse(os.environ['DATABASE_URL'])
 assert(_url_parsed.scheme == 'rethinkdb')
+password = _url_parsed.password
 hostname = _url_parsed.hostname
 port = _url_parsed.port
 dbname = _url_parsed.path[1:]
@@ -31,7 +32,7 @@ def _ensure_db(conn):
 
 def _get_conn():
 	if not hasattr(_threadlocal, 'conn'):
-		_threadlocal.conn = r.connect(hostname, port)
+		_threadlocal.conn = r.connect(hostname, port, auth_key=password)
 		_ensure_db(_threadlocal.conn)
 	return _threadlocal.conn
 
