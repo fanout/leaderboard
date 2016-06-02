@@ -51,8 +51,13 @@ from tempfile import NamedTemporaryFile
 import subprocess
 
 def check_already_running(forwards):
+	if sys.platform == 'darwin':
+		ssh_args = ['pgrep', '-fl', 'ssh']
+	else:
+		ssh_args = ['pgrep', '-x', '-a', 'ssh']
+
 	try:
-		lines = subprocess.check_output(['pgrep', '-x', '-a', 'ssh']).split('\n')
+		lines = subprocess.check_output(ssh_args).split('\n')
 	except subprocess.CalledProcessError:
 		lines = list()
 
