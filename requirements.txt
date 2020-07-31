@@ -20,7 +20,7 @@ pycparser==2.10
 PyJWT==1.7.1
 pyOpenSSL==19.0.0
 pytz==2020.1
-requests==2.6.0
+requests==2.20.0
 rethinkdb==2.2.0.post4
 six==1.15.0
 static3==0.5.1
