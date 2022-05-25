@@ -17,7 +17,7 @@ psycopg2==2.8.2
 pubcontrol==3.0.0
 pyasn1==0.1.7
 pycparser==2.10
-PyJWT==1.7.1
+PyJWT==2.4.0
 pyOpenSSL==19.0.0
 pytz==2020.1
 requests==2.6.0
